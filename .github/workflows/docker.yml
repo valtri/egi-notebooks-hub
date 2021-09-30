@@ -4,7 +4,9 @@ name: Build and push containers
 on:
   push:
     branches:
-    - main
+    - master
+    tags:
+    - "*"
   pull_request:
 
 jobs:

@@ -5,6 +5,8 @@ on:
   push:
     branches:
     - master
+    tags:
+    - "*"
   pull_request:
 
 jobs:
@@ -22,7 +24,7 @@ jobs:
         id: docker_meta
         uses: docker/metadata-action@v3
         with:
-          images: eginotebooks/hub
+          images: valtri/hub
           tags: |
             type=sha
             latest

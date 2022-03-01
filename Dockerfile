@@ -9,6 +9,9 @@ COPY . /egi-notebooks-hub/
 # hadolint ignore=DL3013
 RUN pip3 install --no-cache-dir /egi-notebooks-hub
 
+# multicluster support
+RUN pip3 install jupyterhub-multicluster-kubespawner
+
 # Copy images to the right place so they are found
 RUN cp -r /egi-notebooks-hub/static/* /usr/local/share/jupyterhub/static/
 

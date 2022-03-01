@@ -9,6 +9,9 @@ COPY . /egi-notebooks-hub/
 # hadolint ignore=DL3013
 RUN pip3 install --no-cache-dir /egi-notebooks-hub
 
+# debug
+RUN python3 --version
+
 # multicluster support
 RUN pip3 install jupyterhub-multicluster-kubespawner
 

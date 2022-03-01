@@ -1,4 +1,4 @@
-"""A Spawner for the EGI Notebooks service
+"""A Spawner for the EGI Notebooks service - multicluster flavour
 """
 
 import base64

@@ -6,16 +6,17 @@ from tornado.httputil import url_concat
 
 from jupyterhub.handlers.base import BaseHandler
 
+
 class WelcomeHandler(BaseHandler):
     """Render the welcome home page.
 
-       For using it, define the following config:
-       c.JupyterHub.default_url = "/welcome"
-       c.JupyterHub.extra_handlers = [
-            (r'/welcome', WelcomeHandler),
-       ]
-       and set auto_login for the authenticator
-       c.authenticator.auto_login = True
+    For using it, define the following config:
+    c.JupyterHub.default_url = "/welcome"
+    c.JupyterHub.extra_handlers = [
+         (r'/welcome', WelcomeHandler),
+    ]
+    and set auto_login for the authenticator
+    c.authenticator.auto_login = True
     """
 
     async def get(self):
@@ -29,13 +30,13 @@ class WelcomeHandler(BaseHandler):
         # all options basically taken from
         # jupyterhub.handlers.login.LoginHandler
         html = await self.render_template(
-            'welcome.html',
-            next=url_escape(self.get_argument('next', default='')),
+            "welcome.html",
+            next=url_escape(self.get_argument("next", default="")),
             custom_html=self.authenticator.custom_html,
-            login_url=self.settings['login_url'],
+            login_url=self.settings["login_url"],
             authenticator_login_url=url_concat(
                 self.authenticator.login_url(self.hub.base_url),
-                {'next': self.get_argument('next', '')},
+                {"next": self.get_argument("next", "")},
             ),
         )
         self.finish(html)

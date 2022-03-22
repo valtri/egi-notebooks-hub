@@ -1,10 +1,9 @@
 """Handler for a simple welcome page for EGI Notebooks
 """
 
+from jupyterhub.handlers.base import BaseHandler
 from tornado.escape import url_escape
 from tornado.httputil import url_concat
-
-from jupyterhub.handlers.base import BaseHandler
 
 
 class WelcomeHandler(BaseHandler):

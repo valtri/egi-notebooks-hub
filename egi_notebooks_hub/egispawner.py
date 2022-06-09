@@ -140,13 +140,15 @@ class EGISpawner(KubeSpawner):
         claim_groups_key = getattr(spawner.authenticator, "claim_groups_key", None)
         if claim_groups_key:
             vo_claims = auth_state.get("oauth_user", {}).get(claim_groups_key, [])
-        self.log.info('user vo_claims: %s', vo_claims)
+        self.log.info("user vo_claims: %s", vo_claims)
         if spawner.profile_list:
             new_profile_list = []
             for profile in spawner.profile_list:
                 profile_vos = profile.get("vo_claims", [])
-                self.log.info('profile display_name: %s', profile.get("display_name", ""))
-                self.log.info('profile vo_claims: %s', profile_vos)
+                self.log.info(
+                    "profile display_name: %s", profile.get("display_name", "")
+                )
+                self.log.info("profile vo_claims: %s", profile_vos)
                 if not profile_vos:
                     new_profile_list.append(profile)
                 else:

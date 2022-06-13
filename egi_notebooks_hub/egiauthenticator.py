@@ -101,7 +101,8 @@ class EGICheckinAuthenticator(GenericOAuthenticator):
         self.log.info("Groups: %s", groups)
         auth_state["groups"] = groups
 
-        # first group as the primary, priority is governed by ordering in Authenticator.allowed_groups
+        # first group as the primary, priority is governed by ordering in
+        # Authenticator.allowed_groups
         first_group = next((v for v in self.allowed_groups if v in groups), None)
         self.log.info("Primary group: %s", first_group)
         if first_group:

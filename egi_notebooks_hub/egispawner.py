@@ -138,7 +138,7 @@ class EGISpawner(KubeSpawner):
     def auth_state_hook(self, spawner, auth_state):
         super().auth_state_hook(spawner, auth_state)
 
-        groups = auth_state.get('groups', [])
+        groups = auth_state.get("groups", [])
         if spawner.profile_list:
             new_profile_list = []
             for profile in spawner.profile_list:
@@ -150,6 +150,8 @@ class EGISpawner(KubeSpawner):
                         new_profile_list.append(profile)
             spawner.profile_list = new_profile_list
 
-        primary_group = auth_state.get('primary_groups', None)
+        primary_group = auth_state.get("primary_groups", None)
         if primary_group:
-            spawner.extra_annotations["egi.eu/primary_group"] = auth_state['primary_group']
+            spawner.extra_annotations["egi.eu/primary_group"] = auth_state[
+                "primary_group"
+            ]

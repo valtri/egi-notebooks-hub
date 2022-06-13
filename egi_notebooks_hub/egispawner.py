@@ -148,7 +148,7 @@ class EGISpawner(KubeSpawner):
                         new_profile_list.append(profile)
             spawner.profile_list = new_profile_list
 
-        primary_group = auth_state.get("primary_groups", None)
+        primary_group = auth_state.get("primary_group", None)
         if primary_group:
             spawner.extra_annotations["egi.eu/primary_group"] = auth_state[
                 "primary_group"

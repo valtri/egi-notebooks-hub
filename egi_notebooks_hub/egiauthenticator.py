@@ -81,9 +81,7 @@ class EGICheckinAuthenticator(GenericOAuthenticator):
     )
 
     async def authenticate(self, handler, data=None):
-        user_info = await super(EGICheckinAuthenticator, self).authenticate(
-            handler, data
-        )
+        user_info = await super().authenticate(handler, data)
         if user_info is None or self.claim_groups_key is None:
             return user_info
         auth_state = user_info.get("auth_state", {})

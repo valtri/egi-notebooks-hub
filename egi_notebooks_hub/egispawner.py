@@ -136,7 +136,7 @@ class EGISpawner(KubeSpawner):
         self._update_token_secret(data)
 
     def auth_state_hook(self, spawner, auth_state):
-        super(EGISpawner, self).auth_state_hook(spawner, auth_state)
+        super().auth_state_hook(spawner, auth_state)
 
         groups = auth_state.get("groups", [])
         if spawner.profile_list:

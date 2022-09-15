@@ -116,16 +116,16 @@ class EGISpawner(KubeSpawner):
             else:
                 raise
 
-    def _update_token_secret(self, data):
+    async def _update_token_secret(self, data):
         secret = self._get_secret_manifest(data)
         try:
-            self.api.patch_namespaced_secret(
+            await self.api.patch_namespaced_secret(
                 name=self.token_secret_name, namespace=self.namespace, body=secret
             )
         except ApiException:
             raise
 
-    def set_access_token(self, access_token, id_token=None):
+    async def set_access_token(self, access_token, id_token=None):
         """updates the secret in k8s with the token of the user"""
         data = {
             "access_token": base64.b64encode(access_token.encode()).decode(),
@@ -133,7 +133,7 @@ class EGISpawner(KubeSpawner):
         }
         if id_token:
             data["id_token"] = base64.b64encode(id_token.encode()).decode()
-        self._update_token_secret(data)
+        await self._update_token_secret(data)
 
     def auth_state_hook(self, spawner, auth_state):
         groups = auth_state.get("groups", [])

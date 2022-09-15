@@ -72,6 +72,7 @@ class EGISpawner(KubeSpawner):
         pvcs = self.api.list_namespaced_persistent_volume_claim(
             namespace=self.namespace
         )
+        self.log.info('EGISPAWNER DEBUG pvcs: %s', pvcs)
         for pvc in pvcs.items:
             if (
                 pvc.metadata.annotations.get("hub.jupyter.org/username", "")

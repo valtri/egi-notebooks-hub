@@ -108,7 +108,7 @@ class EGISpawner(KubeSpawner):
     def _create_token_secret(self):
         secret = self._get_secret_manifest({})
         try:
-            await self.api.create_namespaced_secret(namespace=self.namespace, body=secret)
+            self.api.create_namespaced_secret(namespace=self.namespace, body=secret)
             self.log.info("Created access token secret %s", self.token_secret_name)
         except ApiException as e:
             if e.status == 409:
@@ -119,7 +119,7 @@ class EGISpawner(KubeSpawner):
     def _update_token_secret(self, data):
         secret = self._get_secret_manifest(data)
         try:
-            await self.api.patch_namespaced_secret(
+            self.api.patch_namespaced_secret(
                 name=self.token_secret_name, namespace=self.namespace, body=secret
             )
         except ApiException:

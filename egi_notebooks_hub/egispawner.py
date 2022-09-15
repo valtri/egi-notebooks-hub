@@ -67,7 +67,7 @@ class EGISpawner(KubeSpawner):
         )
         self._create_token_secret()
 
-    def get_pvc_manifest(self):
+    async def get_pvc_manifest(self):
         """Tries to fix volumes of to avoid issues with too long user names"""
         pvcs = await self.api.list_namespaced_persistent_volume_claim(
             namespace=self.namespace

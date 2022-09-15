@@ -69,10 +69,9 @@ class EGISpawner(KubeSpawner):
 
     def get_pvc_manifest(self):
         """Tries to fix volumes of to avoid issues with too long user names"""
-        pvcs = self.api.list_namespaced_persistent_volume_claim(
+        pvcs = await self.api.list_namespaced_persistent_volume_claim(
             namespace=self.namespace
         )
-        self.log.info('EGISPAWNER DEBUG pvcs: %s', pvcs)
         for pvc in pvcs.items:
             if (
                 pvc.metadata.annotations.get("hub.jupyter.org/username", "")
@@ -109,7 +108,7 @@ class EGISpawner(KubeSpawner):
     def _create_token_secret(self):
         secret = self._get_secret_manifest({})
         try:
-            self.api.create_namespaced_secret(namespace=self.namespace, body=secret)
+            await self.api.create_namespaced_secret(namespace=self.namespace, body=secret)
             self.log.info("Created access token secret %s", self.token_secret_name)
         except ApiException as e:
             if e.status == 409:
@@ -120,7 +119,7 @@ class EGISpawner(KubeSpawner):
     def _update_token_secret(self, data):
         secret = self._get_secret_manifest(data)
         try:
-            self.api.patch_namespaced_secret(
+            await self.api.patch_namespaced_secret(
                 name=self.token_secret_name, namespace=self.namespace, body=secret
             )
         except ApiException:

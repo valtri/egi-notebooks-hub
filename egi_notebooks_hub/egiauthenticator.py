@@ -8,6 +8,7 @@ import json
 import os
 import time
 from urllib.parse import urlencode
+from pprint import pprint
 
 from oauthenticator.generic import GenericOAuthenticator
 from tornado.httpclient import AsyncHTTPClient, HTTPClientError, HTTPRequest
@@ -72,6 +73,11 @@ class EGICheckinAuthenticator(GenericOAuthenticator):
 
     @validate("scope")
     def _validate_scope(self, proposal):
+        print('EGIAUTH: _VALIDATE_SCOPE')
+        print('EGIAUTH: self')
+        pprint(vars(self))
+        print('EGIAUTH: proposal')
+        pprint(vars(proposal))
         """ensure openid is requested"""
         if "openid" not in proposal.value:
             return ["openid"] + proposal.value
@@ -90,9 +96,20 @@ class EGICheckinAuthenticator(GenericOAuthenticator):
     )
 
     async def authenticate(self, handler, data=None):
+        print("AUTHENTICATE")
+        print('EGIAUTH: self')
+        pprint(vars(self))
+        print('EGIAUTH: handler')
+        if handler is not None:
+            pprint(vars(handler))
+        print('EGIAUTH: data')
+        if data is not None:
+            pprint(vars(data))
         user_info = await super().authenticate(handler, data)
         if user_info is None or self.claim_groups_key is None:
             return user_info
+        print('EGIAUTH: user_info')
+        pprint(user_info)  # not dict
         auth_state = user_info.get("auth_state", {})
         oauth_user = auth_state.get("oauth_user", {})
         if not oauth_user:
@@ -119,6 +136,15 @@ class EGICheckinAuthenticator(GenericOAuthenticator):
 
     # Refresh auth data for user
     async def refresh_user(self, user, handler=None):
+        print("REFRESH_USER")
+        print('EGIAUTH: self')
+        pprint(vars(self))
+        print('EGIAUTH: user')
+        if user is not None:
+            pprint(vars(user))
+        print('EGIAUTH: handler')
+        if handler is not None:
+            pprint(vars(handler))
         auth_state = await user.get_auth_state()
         if not auth_state or "refresh_token" not in auth_state:
             self.log.warning("Cannot refresh user info without refresh token")
@@ -126,8 +152,11 @@ class EGICheckinAuthenticator(GenericOAuthenticator):
 
         now = time.time()
         refresh_info = auth_state.get("refresh_info", {})
+        print('EGIAUTH refresh_info old')
+        pprint(refresh_info)
         # if the token is still valid, avoid refreshing
         time_left = refresh_info.get("expiry_time", 0) - now
+        print('time_left %f, auth_refresh_age %f, still valid %r' % (time_left, self.auth_refresh_age, time_left > self.auth_refresh_age))
         if time_left > self.auth_refresh_age:
             self.log.debug("Credentials still valid, time left: %f", time_left)
             return True
@@ -162,7 +191,10 @@ class EGICheckinAuthenticator(GenericOAuthenticator):
             self.log.warning("Unable to refresh token, maybe expired: %s", e)
             return False
         refresh_info = json.loads(resp.body.decode("utf8", "replace"))
+        print('EGIAUTH: refresh_info new')
+        pprint(refresh_info)
         refresh_info["expiry_time"] = now + refresh_info["expires_in"]
+        print('EGIAUTH: computed expiry_date %f' % refresh_info["expiry_time"])
         auth_state["refresh_info"] = refresh_info
         auth_state["access_token"] = refresh_info["access_token"]
         if "refresh_token" in refresh_info:
@@ -171,7 +203,10 @@ class EGICheckinAuthenticator(GenericOAuthenticator):
             auth_state["id_token"] = refresh_info["id_token"]
         self.log.debug("Refreshed token for user!")
         if callable(getattr(user.spawner, "set_access_token", None)):
+            print('Calling set_access_token()')
             await user.spawner.set_access_token(
                 auth_state["access_token"], refresh_info.get("id_token", None)
             )
+        print('EGIAUTH: auth_state')
+        pprint(auth_state)
         return {"auth_state": auth_state}

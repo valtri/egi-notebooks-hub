@@ -1,5 +1,5 @@
 # Starting with the image used in helm jupyterhub
-FROM jupyterhub/k8s-hub:2.0.0
+FROM jupyterhub/k8s-hub:3.1.0
 
 USER root
 

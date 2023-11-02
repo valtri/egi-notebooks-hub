@@ -24,7 +24,7 @@ jobs:
         id: docker_meta
         uses: docker/metadata-action@v5
         with:
-          images: eginotebooks/hub
+          images: valtri/hub
           tags: |
             type=sha
             type=pep440,pattern={{version}}

@@ -38,7 +38,7 @@ body {
   height: 60px; /* Set the fixed height of the footer here */
 }
 
-.egi-logo {
+.eosc-logo {
     height: 60px;
     margin-top: 5px;
     margin-right: 20px;
@@ -77,10 +77,10 @@ body {
 {% endblock %}
 
 
-{% block title %}EGI {{ service_name }}{% endblock %}
+{% block title %}EOSC {{ service_name }}{% endblock %}
 
 {% block logo %}
 <span id="jupyterhub-logo" class="pull-left">
-  <a href="{{logo_url or base_url}}"><img src="{{ static_url('images/egi-logo.svg') }}" alt="EGI {{ service_name }}" class="egi-logo" title="Home"></a>
+  <a href="{{logo_url or base_url}}"><img src="{{ static_url('images/eosc-logo.png') }}" alt="EOSC {{ service_name }}" class="eosc-logo" title="Home"></a>
 </span>
 {% endblock %}

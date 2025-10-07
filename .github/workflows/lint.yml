@@ -22,7 +22,7 @@ jobs:
       - name: Run Super-Linter on new changes
         uses: github/super-linter@v7
         env:
-          DEFAULT_BRANCH: main
+          DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Only check new or edited files
           VALIDATE_ALL_CODEBASE: false

@@ -153,7 +153,7 @@ def keycloak_admin(pytestconfig: pytest.Config) -> KeycloakAdmin:
 @pytest.fixture(scope="session")
 def keycloak_client(
     pytestconfig: pytest.Config, keycloak_admin: KeycloakAdmin
-) -> Generator[tuple[str, str], None, None]:
+) -> Generator[tuple[str, str | None], None, None]:
     """
     Fixture that ensures the OIDC client exists.
 

@@ -120,9 +120,11 @@ def first_line(content: str) -> str:
     :param content:
     The string content.
     """
-    if content is None:
-        return ""
-    return re.match(r"^(.*?)(\n|$)", str(content)).group(1)
+    m: re.Match = re.match(r"^(.*?)(\n|$)", content)
+    if m is None:
+        return None
+    else:
+        return m.group(1)
 
 
 @pytest_asyncio.fixture(scope="function")

@@ -120,7 +120,7 @@ def first_line(content: str) -> str:
     :param content:
     The string content.
     """
-    m: re.Match = re.match(r"^(.*?)(\n|$)", content)
+    m: re.Match[str] | None = re.match(r"^(.*?)(\n|$)", content)
     if m is None:
         return None
     else:

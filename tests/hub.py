@@ -5,14 +5,14 @@ Module for emulation of the JupyterHub API parts that are used by the authentica
 import asyncio
 import logging
 import os
-import pytest
-import pytest_asyncio
 import re
-import requests
 import socket
 import threading
 import urllib.parse
 
+import pytest
+import pytest_asyncio
+import requests
 
 DEFAULT_LISTEN_HOST: str = "127.0.0.1"
 DEFAULT_LISTEN_PORT: str = "8500"
@@ -102,7 +102,7 @@ def first_line(content: str) -> str:
     :param content:
     The string content.
     """
-    return re.match(r'^(.*?)(\n|$)', content).group(1)
+    return re.match(r"^(.*?)(\n|$)", content).group(1)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -154,6 +154,7 @@ async def oauth_callback_server(
 
     # Request handler
     class CallbackHandler:
+
         def __init__(self, conn, addr):
             self.conn = conn
             self.addr = addr

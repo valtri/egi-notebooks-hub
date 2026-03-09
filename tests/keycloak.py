@@ -5,11 +5,12 @@ Module for testing with real Keycloak server providing OIDC.
 import json
 import logging
 import os
-import time
-import requests
-import pytest
 import secrets
 import string
+import time
+
+import pytest
+import requests
 from pathlib import Path
 from urllib.parse import urljoin
 from keycloak import KeycloakAdmin, KeycloakOpenID

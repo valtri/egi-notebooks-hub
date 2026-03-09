@@ -1,8 +1,8 @@
 import asyncio
 import logging
 import os
-import pytest
 
+import pytest
 from oauthenticator.generic import GenericOAuthenticator
 from . import hub
 
@@ -80,6 +80,7 @@ async def test_authorization_code_flow(
     # gives to ``authenticate``.  The only arguments we need are
     # ``code`` and ``state`` – everything else is irrelevant for the hook.
     class DummyHandler:
+
         def __init__(self, data):
             self._data = data
 

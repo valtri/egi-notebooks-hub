@@ -28,7 +28,7 @@ def pytest_configure(config: pytest.Config) -> None:
     config.base_url = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
     config.realm = os.getenv("KEYCLOAK_REALM", "test-realm")
     config.client_callbacks = os.getenv("KEYCLOAK_CLIENT_CALLBACKS", "").split(",")
-    scopes_file: str = (
+    scopes_file: Path = (
         Path(__file__)
         .relative_to(Path.cwd())
         .parent.joinpath("config")
@@ -217,7 +217,7 @@ def keycloak_client(
 @pytest.fixture
 def keycloak_user(
     keycloak_admin: KeycloakAdmin,
-) -> Generator[dict[str, str], None, None]:
+) -> Generator[dict[str, str | None], None, None]:
     """
     Create a temporary user, yield its credentials, and delete it afterwards.
 

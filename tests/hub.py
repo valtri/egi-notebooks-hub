@@ -122,7 +122,7 @@ def first_line(content: str) -> str:
     """
     if content is None:
         return ""
-    return re.match(r"^(.*?)(\n|$)", content).group(1)
+    return re.match(r"^(.*?)(\n|$)", str(content)).group(1)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -145,7 +145,7 @@ async def oauth_callback_server(
     hub_listen_address: str,
     keycloak_client_callback_url: str,
     event_loop,
-) -> AsyncGenerator[tuple[str, str], None]:
+) -> AsyncGenerator[tuple[str, asyncio.Future[dict[str, str]]], None]:
     """
     Starts a tiny HTTP server on specified listen address that records the query
     string of the first GET request it receives (the OAuth redirect) and then

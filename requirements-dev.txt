@@ -1,3 +1,4 @@
 pytest
+pytest-asyncio
 python-keycloak
 urllib3

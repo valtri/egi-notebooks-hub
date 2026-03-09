@@ -28,7 +28,8 @@ def test_setup(
     logging.info(f"user: {keycloak_user['username']} ({keycloak_user['user_id']})")
 
     logging.info(
-        f"openid instance: {keycloak_openid.client_id} @ {keycloak_openid.realm_name}, URL {keycloak_openid.well_known().get('issuer', None)}"
+        f"openid instance: {keycloak_openid.client_id} @ {keycloak_openid.realm_name}, "
+        f"URL {keycloak_openid.well_known().get('issuer', None)}"
     )
 
     token: dict[str, object] = keycloak_openid.token(

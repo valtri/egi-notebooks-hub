@@ -1,3 +1,4 @@
 pytest_plugins = [
-    "tests.keycloak"
+    "tests.keycloak",
+    "tests.hub",
 ]

@@ -1,3 +1,7 @@
+"""
+Module for testing with real Keycloak server providing OIDC.
+"""
+
 import json
 import logging
 import os
@@ -17,10 +21,13 @@ def pytest_configure(config: pytest.Config) -> None:
     Configuration for tests.
 
     :param config:
-    Pytest fixture with global configuration.
+    Pytest configuration object.
     """
     config.base_url: str = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
     config.realm: str = os.getenv("KEYCLOAK_REALM", "test-realm")
+    config.client_callbacks: list[str] = os.getenv(
+        "KEYCLOAK_CLIENT_CALLBACKS", ""
+    ).split(",")
     scopes_file = (
         Path(__file__)
         .relative_to(Path.cwd())
@@ -31,6 +38,21 @@ def pytest_configure(config: pytest.Config) -> None:
     with open(scopes_file, "r") as f:
         config.scopes = json.load(f)
     logging.debug("=> {len(config.scopes)} scopes")
+
+
+@pytest.fixture(scope="session")
+def keycloak_client_callback_url(pytestconfig: pytest.Config) -> str:
+    """
+    Fixture to get the callback URL.
+
+    :param pytestconfig:
+    Pytest configuration object.
+    """
+    assert (
+        pytestconfig.client_callbacks is not None
+    ), "KEYCLOAK_CLIENT_CALLBACKS required"
+    assert len(pytestconfig.client_callbacks) > 0, "KEYCLOAK_CLIENT_CALLBACKS required"
+    return pytestconfig.client_callbacks[0]
 
 
 def _wait_for_keycloak(base_url: str, realm: str, timeout: int = 30) -> None:
@@ -114,7 +136,6 @@ def keycloak_client(
     """
     client_id: str = os.getenv("KEYCLOAK_CLIENT_ID", "test-client")
     client_secret: str = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
-    client_callbacks: list[str] = os.getenv("KEYCLOAK_CLIENT_CALLBACKS", "").split(",")
 
     ident: str = keycloak_admin.get_client_id(client_id)
     if ident is None:
@@ -126,7 +147,7 @@ def keycloak_client(
             "directAccessGrantsEnabled": True,
             "serviceAccountsEnabled": True,
             "standardFlowEnabled": True,
-            "redirectUris": client_callbacks,
+            "redirectUris": pytestconfig.client_callbacks,
             "webOrigins": ["*"],
             "defaultClientScopes": [
                 "openid",
@@ -154,7 +175,7 @@ def keycloak_user(keycloak_admin: KeycloakAdmin) -> None:
     """
     avail_chars = string.ascii_letters + string.digits + string.punctuation
     username: str = f"user-{int(time.time()*1000)}"
-    password = ''.join(secrets.choice(avail_chars) for i in range(20))
+    password = "".join(secrets.choice(avail_chars) for i in range(20))
 
     user_id = keycloak_admin.create_user(
         {
@@ -187,6 +208,12 @@ def keycloak_openid(
 ) -> KeycloakOpenID:
     """
     Fixture that gives you a **ready OpenID client** (for token fetches)
+
+    :param pytestconfig:
+    Pytest configuration object.
+
+    :param keycloak_client:
+    Keycload OpenID client (clientId, clientSecret).
     """
     base_url = pytestconfig.base_url
     realm = pytestconfig.realm

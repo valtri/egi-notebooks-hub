@@ -113,7 +113,7 @@ def dummy_spawner():
     return DummySpawner()
 
 
-def first_line(content: str) -> str:
+def first_line(content: str) -> str | None:
     """
     Get the first line of the HTML response.
 

@@ -99,6 +99,14 @@ def _ensure_realm(
         keycloak_admin.import_realm(payload=payload)
 
 
+def _randkey(length: int = 20):
+    """
+    Generate random string for using as credentials.
+    """
+    avail_chars = string.ascii_letters + string.digits + string.punctuation
+    return "".join(secrets.choice(avail_chars) for i in range(20))
+
+
 @pytest.fixture(scope="session")
 def keycloak_admin(pytestconfig: pytest.Config) -> KeycloakAdmin:
     """
@@ -135,11 +143,20 @@ def keycloak_client(
     """
     Fixture that ensures the OIDC client exists.
     """
-    client_id: str = os.getenv("KEYCLOAK_CLIENT_ID", "test-client")
-    client_secret: str = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
+    client_id: str = os.getenv("KEYCLOAK_CLIENT_ID")
+    client_secret: str = os.getenv("KEYCLOAK_CLIENT_SECRET")
+    external: bool = False
+    if client_id:
+        external = True
+    else:
+        client_id = f"client-{int(time.time()*1000)}"
+    if not client_secret:
+        client_secret = _randkey()
 
-    ident: str = keycloak_admin.get_client_id(client_id)
-    if ident is None:
+    ident: str
+    try:
+        ident = keycloak_admin.get_client_id(client_id)
+    except KeycloakGetError:
         payload: dict[object] = {
             "id": client_id,
             "clientId": client_id,
@@ -162,11 +179,21 @@ def keycloak_client(
             ],
         }
         logging.info(f"Creating OpenID client {client_id}")
-        keycloak_admin.create_client(payload, skip_exists=True)
+        ident = keycloak_admin.create_client(payload, skip_exists=True)
     else:
         logging.debug(f"Found OpenId client {client_id} ({ident})")
 
-    return (client_id, client_secret)
+    yield (client_id, client_secret)
+
+    # Clean‑up
+    if not external:
+        try:
+            logging.info(f"Deleting client {client_id} ({ident})")
+            keycloak_admin.delete_client(client_id)
+        except Exception as exc:  # pragma: no cover
+            logging.error(f"Cleanup user failed: {exc}")
+    else:
+        logging.debug(f"Kept external user {client_id} ({ident})")
 
 
 @pytest.fixture
@@ -174,15 +201,25 @@ def keycloak_user(keycloak_admin: KeycloakAdmin) -> None:
     """
     Create a temporary user, yield its credentials, and delete it afterwards.
     """
-    avail_chars = string.ascii_letters + string.digits + string.punctuation
-    username: str = f"user-{int(time.time()*1000)}"
-    password = "".join(secrets.choice(avail_chars) for i in range(20))
+    username: str = os.getenv("KEYCLOAK_USER_NAME")
+    password: str = os.getenv("KEYCLOAK_USER_PASSWORD")
+    external: bool = False
+    if username:
+        external = True
+    else:
+        username = f"user-{int(time.time()*1000)}"
+    if not password:
+        password = _randkey()
 
+    logging.info(f"Creating user {username} if not exists")
     user_id = keycloak_admin.create_user(
         {
             "username": username,
             "enabled": True,
+            "email": f"oauth-test-{username}@xample.com",
             "emailVerified": True,
+            "firstName": "Test",
+            "lastName": "User",
             "credentials": [
                 {"type": "password", "value": password, "temporary": False}
             ],
@@ -197,10 +234,14 @@ def keycloak_user(keycloak_admin: KeycloakAdmin) -> None:
     yield {"username": username, "password": password, "user_id": user_id}
 
     # Clean‑up
-    try:
-        keycloak_admin.delete_user(user_id)
-    except Exception as exc:  # pragma: no cover
-        logging.error(f"Cleanup user failed: {exc}")
+    if not external:
+        try:
+            logging.info(f"Deleting user {username} ({user_id})")
+            keycloak_admin.delete_user(user_id)
+        except Exception as exc:  # pragma: no cover
+            logging.error(f"Cleanup user failed: {exc}")
+    else:
+        logging.debug(f"Kept external user {username} ({user_id})")
 
 
 @pytest.fixture

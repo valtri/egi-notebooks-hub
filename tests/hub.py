@@ -13,6 +13,8 @@ import urllib.parse
 import pytest
 import pytest_asyncio
 import requests
+import bs4
+from bs4 import BeautifulSoup
 
 DEFAULT_LISTEN_HOST: str = "127.0.0.1"
 DEFAULT_LISTEN_PORT: str = "8500"
@@ -34,8 +36,8 @@ class DummyHandler:
     ``authenticate``.
     """
 
-    def __init__(self, args: dict):
-        self._args = args
+    def __init__(self, data: dict):
+        self._args = data
 
     def get_argument(self, name, default=None):
         # Mimic Tornado’s behaviour of raising a ``MissingArgumentError`` only
@@ -44,8 +46,8 @@ class DummyHandler:
 
     # For the auth‑code flow some authenticators also read cookies
     def get_secure_cookie(self, name):
-        # In tests we just return the value we stored in ``args`` under the same key
-        return self.args.get(name)
+        # In tests we just return the value we stored in ``data`` under the same key
+        return self.data.get(name)
 
 
 @pytest.fixture
@@ -175,6 +177,8 @@ async def oauth_callback_server(
             # Extract the query part of the URL
             parsed = urllib.parse.urlsplit(path)
             query = urllib.parse.parse_qs(parsed.query)
+            if "error" in query:
+                logging.error(f"Callback: {query}")
             # ``code`` and ``state`` are single‑value strings
             result = {
                 "code": query.get("code", [None])[0],
@@ -222,8 +226,7 @@ async def oauth_callback_server(
     thread.start()
 
     # Return the URL the authenticator should use as redirect_uri and the future
-    callback_url: str = f"http://{host}:{port}"
-    yield callback_url, result_fut
+    yield keycloak_client_callback_url, result_fut
 
     # Clean‑up – the thread will exit after handling the single request
     thread.join(timeout=1)
@@ -288,8 +291,16 @@ def run_oauth_code_flow(
     auth_url = f"{auth_endpoint}?{urllib.parse.urlencode(auth_params)}"
 
     # GET the auth URL – Keycloak will redirect to the login page
+    logging.info(f"GET {auth_url}")
     r = sess.get(auth_url, allow_redirects=True)
     r.raise_for_status()
+
+    # extract submit action URL
+    soup = BeautifulSoup(r.text, "html.parser")
+    html_form: bs4.element.Tag = soup.find("form")
+    assert html_form is not None, "No form found in Keystone login page"
+    action_url: str = html_form.get("action")
+    assert action_url, "No form action found in Keystone login page"
 
     #
     # POST the login form.
@@ -306,7 +317,9 @@ def run_oauth_code_flow(
     }
     # The login POST must follow redirects because Keycloak will finally
     # redirect back to ``redirect_uri``
-    login_resp = sess.post(r.url, data=login_data, allow_redirects=True)
+    logging.info(f"POST {action_url}")
+    logging.debug(login_data)
+    login_resp = sess.post(action_url, data=login_data, allow_redirects=True)
     login_resp.raise_for_status()
 
     # At this point the session has been redirected to ``redirect_uri`` **with**

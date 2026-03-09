@@ -252,7 +252,7 @@ async def oauth_callback_server(
     logging.debug("Callback: shutdown")
 
 
-def run_oauth_code_flow(
+def launch_oauth_code_flow(
     *,
     auth_endpoint: str,
     token_endpoint: str,
@@ -264,8 +264,8 @@ def run_oauth_code_flow(
     session: requests.Session | None = None,
 ) -> dict:
     """
-    Executes a full OAuth 2.0 Authorization‑Code flow against a real Keycloak
-    server and returns the *raw* token response (access, refresh, id_token).
+    Start the OAuth 2.0 Authorization‑Code flow against a real Keycloak
+    server and returns query parameters after successful user login.
 
     :param auth_endpoint:
         URL of the Keycloak ``/protocol/openid-connect/auth`` endpoint.
@@ -288,7 +288,7 @@ def run_oauth_code_flow(
     Returns
     -------
     dict
-        The JSON payload returned by the token endpoint.
+        Query parameters.
     """
     sess = session or requests.Session()
     sess.verify = True
@@ -320,7 +320,7 @@ def run_oauth_code_flow(
     html_form: bs4.element.Tag = soup.find("form")
     assert html_form is not None, "No form found in Keystone login page"
     action_url: str = html_form.get("action")
-    assert action_url, "No form action found in Keystone login page"
+    assert action_url, "No form submit action found in Keystone login page"
 
     #
     # POST the login form.
@@ -360,15 +360,7 @@ def run_oauth_code_flow(
             f"code={code!r} state={returned_state!r}"
         )
 
-    # Exchange the code for tokens
-    token_payload = {
-        "grant_type": "authorization_code",
-        "code": code,
-        "redirect_uri": redirect_uri,
-        "client_id": client_id,
-        "client_secret": client_secret,
-    }
-    token_resp = sess.post(token_endpoint, data=token_payload)
-    token_resp.raise_for_status()
-    # logging.debug(f"Cookies: {list(sess.cookies.get_dict().keys())}")
-    return token_resp.json()
+    params: dict[str, object] = {}
+    for k in query.keys():
+        params[k] = query.get(k, [None])[0]
+    return params

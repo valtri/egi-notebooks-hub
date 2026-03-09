@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 
@@ -9,16 +10,20 @@ from . import hub
 
 
 @pytest.fixture
-def oauth2_endpoints(pytestconfig: pytest.Config, keycloak_admin):
+def oauth2_endpoints(pytestconfig: pytest.Config) -> tuple[str, str, str]:
     """
     Return the two endpoint URLs used by Keycloak for the *standard* flow.
+
+    :param pytestconfig:
+    Pytest configuration object.
     """
     base = pytestconfig.base_url
     realm = pytestconfig.realm
     # XXX
     auth_endpoint = f"{base}/realms/{realm}/protocol/openid-connect/auth"
     token_endpoint = f"{base}/realms/{realm}/protocol/openid-connect/token"
-    return auth_endpoint, token_endpoint
+    userinfo_endpoint = f"{base}/realms/{realm}/protocol/openid-connect/userinfo"
+    return auth_endpoint, token_endpoint, userinfo_endpoint
 
 
 @pytest.mark.asyncio
@@ -38,6 +43,9 @@ async def test_authorization_code_flow(
     3. Calls ``GenericOAuthenticator.authenticate`` with a handler that
        contains the ``code`` and the originally generated ``state``.
     4. Asserts that the authenticator returns the expected JupyterHub user dict.
+
+    :param pytestconfig:
+    Pytest configuration object.
     """
     client_id, client_secret = keycloak_client
     username = keycloak_user["username"]
@@ -50,20 +58,23 @@ async def test_authorization_code_flow(
     auth.client_id = client_id
     auth.client_secret = client_secret
     auth.verify = True
-    # XXX: not heavily tested
+    # XXX: not yet supported in DummyHandler
     auth.enable_pkce = False
+    # available in default Keycloak setup
+    auth.username_claim = "preferred_username"
 
     # Start the tiny callback HTTP server that will receive the redirect
     redirect_uri, code_future = oauth_callback_server
 
     # Run the *real* OAuth flow *outside* the authenticator
-    auth_endpoint, token_endpoint = oauth2_endpoints
+    auth_endpoint, token_endpoint, userinfo_endpoint = oauth2_endpoints
 
     # Set our redirect URL in authentcator
     auth.oauth_callback_url = redirect_uri
+    auth.userdata_url = userinfo_endpoint
     auth.token_url = token_endpoint
 
-    token_response = hub.run_oauth_code_flow(
+    response_params = hub.launch_oauth_code_flow(
         auth_endpoint=auth_endpoint,
         token_endpoint=token_endpoint,
         client_id=client_id,
@@ -72,10 +83,7 @@ async def test_authorization_code_flow(
         password=password,
         redirect_uri=redirect_uri,
     )
-    # ``token_response`` contains the tokens we will later compare against
-    # Keep it for later assertions
-    assert "access_token" in token_response
-    assert "refresh_token" in token_response
+    logging.debug(f"Launch OAuth code flow parameters: {response_params}")
 
     # At this point the tiny callback server has already received the
     # redirect and stored ``code`` & ``state`` in the future.
@@ -99,14 +107,10 @@ async def test_authorization_code_flow(
     assert result["name"] == username
 
     auth_state = result["auth_state"]
-    # Tokens from the authenticator must match the ones we retrieved via the
-    # *external* flow (they are the raw values returned by the token endpoint).
-    assert auth_state["access_token"] == token_response["access_token"]
-    assert auth_state["refresh_token"] == token_response["refresh_token"]
-    assert auth_state["id_token"] == token_response.get("id_token")
-
-    # Optional sanity: the full token response is stored as well.
-    assert auth_state["token_response"] == token_response
+    logging.debug(f"auth_state = {json.dumps(auth_state, indent=4)}")
+    assert auth_state["access_token"] is not None, "access_token returned"
+    assert auth_state["id_token"] is not None, "id_token returned"
+    assert auth_state["refresh_token"] is not None, "refresh_token returned"
 
 
 @pytest.mark.asyncio

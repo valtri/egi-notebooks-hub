@@ -9,11 +9,12 @@ import re
 import socket
 import threading
 import urllib.parse
+from typing import AsyncGenerator
 
+import bs4
 import pytest
 import pytest_asyncio
 import requests
-import bs4
 from bs4 import BeautifulSoup
 
 DEFAULT_LISTEN_HOST: str = "127.0.0.1"
@@ -119,6 +120,8 @@ def first_line(content: str) -> str:
     :param content:
     The string content.
     """
+    if content is None:
+        return ""
     return re.match(r"^(.*?)(\n|$)", content).group(1)
 
 
@@ -142,7 +145,7 @@ async def oauth_callback_server(
     hub_listen_address: str,
     keycloak_client_callback_url: str,
     event_loop,
-) -> tuple[str, str]:
+) -> AsyncGenerator[tuple[str, str], None]:
     """
     Starts a tiny HTTP server on specified listen address that records the query
     string of the first GET request it receives (the OAuth redirect) and then

@@ -8,11 +8,12 @@ import os
 import secrets
 import string
 import time
+from pathlib import Path
+from typing import Generator
+from urllib.parse import urljoin
 
 import pytest
 import requests
-from pathlib import Path
-from urllib.parse import urljoin
 from keycloak import KeycloakAdmin, KeycloakOpenID
 from keycloak.exceptions import KeycloakGetError
 
@@ -24,12 +25,10 @@ def pytest_configure(config: pytest.Config) -> None:
     :param config:
     Pytest configuration object.
     """
-    config.base_url: str = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
-    config.realm: str = os.getenv("KEYCLOAK_REALM", "test-realm")
-    config.client_callbacks: list[str] = os.getenv(
-        "KEYCLOAK_CLIENT_CALLBACKS", ""
-    ).split(",")
-    scopes_file = (
+    config.base_url = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
+    config.realm = os.getenv("KEYCLOAK_REALM", "test-realm")
+    config.client_callbacks = os.getenv("KEYCLOAK_CLIENT_CALLBACKS", "").split(",")
+    scopes_file: str = (
         Path(__file__)
         .relative_to(Path.cwd())
         .parent.joinpath("config")
@@ -154,7 +153,7 @@ def keycloak_admin(pytestconfig: pytest.Config) -> KeycloakAdmin:
 @pytest.fixture(scope="session")
 def keycloak_client(
     pytestconfig: pytest.Config, keycloak_admin: KeycloakAdmin
-) -> tuple[str, str]:
+) -> Generator[tuple[str, str], None, None]:
     """
     Fixture that ensures the OIDC client exists.
 
@@ -164,8 +163,8 @@ def keycloak_client(
     :param keycloak_admin:
     Keycloak admin client.
     """
-    client_id: str = os.getenv("KEYCLOAK_CLIENT_ID")
-    client_secret: str = os.getenv("KEYCLOAK_CLIENT_SECRET")
+    client_id: str | None = os.getenv("KEYCLOAK_CLIENT_ID")
+    client_secret: str | None = os.getenv("KEYCLOAK_CLIENT_SECRET")
     external: bool = False
     if client_id:
         external = True
@@ -176,7 +175,7 @@ def keycloak_client(
 
     ident: str = keycloak_admin.get_client_id(client_id)
     if not ident:
-        payload: dict[object] = {
+        payload: dict[str, object] = {
             "id": client_id,
             "clientId": client_id,
             "secret": client_secret,
@@ -202,7 +201,7 @@ def keycloak_client(
     else:
         logging.debug(f"Found OpenId client {client_id} ({ident})")
 
-    yield (client_id, client_secret)
+    yield client_id, client_secret
 
     # Clean‑up
     if not external:
@@ -216,15 +215,17 @@ def keycloak_client(
 
 
 @pytest.fixture
-def keycloak_user(keycloak_admin: KeycloakAdmin) -> None:
+def keycloak_user(
+    keycloak_admin: KeycloakAdmin,
+) -> Generator[dict[str, str], None, None]:
     """
     Create a temporary user, yield its credentials, and delete it afterwards.
 
     :param keycloak_admin:
     Keycloak admin client.
     """
-    username: str = os.getenv("KEYCLOAK_USER_NAME")
-    password: str = os.getenv("KEYCLOAK_USER_PASSWORD")
+    username: str | None = os.getenv("KEYCLOAK_USER_NAME")
+    password: str | None = os.getenv("KEYCLOAK_USER_PASSWORD")
     external: bool = False
     if username:
         external = True

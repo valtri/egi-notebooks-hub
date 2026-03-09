@@ -4,6 +4,7 @@ import os
 
 import pytest
 from oauthenticator.generic import GenericOAuthenticator
+
 from . import hub
 
 

@@ -56,7 +56,7 @@ def keycloak_client_callback_url(pytestconfig: pytest.Config) -> str:
     return pytestconfig.client_callbacks[0]
 
 
-def _wait_for_keycloak(base_url: str, realm: str, timeout: int = 30) -> None:
+def _wait_for_keycloak(base_url: str, realm: str, timeout: int = 90) -> None:
     """
     Wait until the /realms/<realm> endpoint answers.
     """

@@ -81,27 +81,11 @@ async def test_authorization_code_flow(
     callback_params = await asyncio.wait_for(code_future, timeout=5)
     code = callback_params["code"]
     state = callback_params["state"]
-    logging.info(f"Authentication code from callback: {code}")
+    logging.info(f"Authentication code and state from callback: {code}, {state}")
     logging.debug(f"All params from callback: {callback_params}")
     assert code is not None and state == "test-state-12345"
 
-    # A dummy Tornado request handler that mimics what JupyterHub
-    # gives to ``authenticate``.  The only arguments we need are
-    # ``code`` and ``state`` – everything else is irrelevant for the hook.
-    class DummyHandlerAuthCode(hub.DummyHandler):
-
-        # The authenticator may also read the `state` cookie (some implementations
-        # store it there).  For this test we simply return the value we already
-        # have in the query string.
-        def get_secure_cookie(self, name):
-            if name == "oauth_state":
-                return state.encode()
-            return None
-
-        def get_state_cookie(self):
-            return state.encode()
-
-    handler = DummyHandlerAuthCode({"code": code, "state": state})
+    handler = hub.DummyHandler({"code": code, "state": state})
 
     # Call the authenticator *asynchronous* method
     result = await auth.authenticate(handler)

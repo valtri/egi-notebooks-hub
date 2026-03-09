@@ -37,17 +37,32 @@ class DummyHandler:
     """
 
     def __init__(self, data: dict):
-        self._args = data
+        logging.info(f"DummyHandler.__init__(data={data})")
+        self.data = data
 
     def get_argument(self, name, default=None):
         # Mimic Tornado’s behaviour of raising a ``MissingArgumentError`` only
         # when default is ``None`` – but for our tests returning ``None`` is fine
-        return self._args.get(name, default)
+        v = self.data.get(name, default)
+        logging.info(f"DummyHandler.get_argument({name}, default={default}) => {v}")
+        return v
 
-    # For the auth‑code flow some authenticators also read cookies
+    # The authenticator may also read the other cookies (some implementations
+    # store it there).  For this test we simply return the value we already
+    # have in the query string (``code``).
     def get_secure_cookie(self, name):
-        # In tests we just return the value we stored in ``data`` under the same key
-        return self.data.get(name)
+        if name in ["oauth_state", "oauthenticator-state"]:
+            v = self.data.get("state").encode()
+        else:
+            v = self.data.get(name)
+        logging.info(f"DummyHandler.get_secure_cookie({name}) => {v}")
+        return v
+
+    # XXX: base64 encoded data with "code_verifier" instead
+    # def get_state_cookie(self):
+    #     v = self.data["state"].encode()
+    #     logging.info(f"DummyHandler.get_state_cookie() => {v}")
+    #     return v
 
 
 @pytest.fixture
@@ -177,6 +192,7 @@ async def oauth_callback_server(
             # Extract the query part of the URL
             parsed = urllib.parse.urlsplit(path)
             query = urllib.parse.parse_qs(parsed.query)
+            logging.debug(f"Callback all query keys: {list(query.keys())}")
             if "error" in query:
                 logging.error(f"Callback: {query}")
             # ``code`` and ``state`` are single‑value strings
@@ -294,6 +310,7 @@ def run_oauth_code_flow(
     logging.info(f"GET {auth_url}")
     r = sess.get(auth_url, allow_redirects=True)
     r.raise_for_status()
+    # logging.debug(f"Cookies: {list(sess.cookies.get_dict().keys())}")
 
     # extract submit action URL
     soup = BeautifulSoup(r.text, "html.parser")
@@ -321,6 +338,7 @@ def run_oauth_code_flow(
     logging.debug(login_data)
     login_resp = sess.post(action_url, data=login_data, allow_redirects=True)
     login_resp.raise_for_status()
+    # logging.debug(f"Cookies: {list(sess.cookies.get_dict().keys())}")
 
     # At this point the session has been redirected to ``redirect_uri`` **with**
     # ``code`` and ``state`` query parameters.  Grab them from the final URL.
@@ -330,6 +348,8 @@ def run_oauth_code_flow(
 
     code = query.get("code", [None])[0]
     returned_state = query.get("state", [None])[0]
+    logging.debug(f"Authentication code and state from Keycloak: {code}, {state}")
+    logging.debug(f"Keycloak all query keys: {list(query.keys())}")
 
     if not code or returned_state != state:
         raise RuntimeError(
@@ -347,4 +367,5 @@ def run_oauth_code_flow(
     }
     token_resp = sess.post(token_endpoint, data=token_payload)
     token_resp.raise_for_status()
+    # logging.debug(f"Cookies: {list(sess.cookies.get_dict().keys())}")
     return token_resp.json()

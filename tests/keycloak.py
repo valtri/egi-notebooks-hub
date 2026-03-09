@@ -79,6 +79,15 @@ def _ensure_realm(
 ) -> None:
     """
     Create the realm if doesn't exist.
+
+    :param keycloak_admin:
+    Keycloak admin client.
+
+    :param realm:
+    Realm name.
+
+    :param scopes:
+    OIDC scopes.
     """
     exists: bool = False
     try:
@@ -102,6 +111,9 @@ def _ensure_realm(
 def _randkey(length: int = 20):
     """
     Generate random string for using as credentials.
+
+    :param length:
+    Result string length.
     """
     avail_chars = string.ascii_letters + string.digits + string.punctuation
     return "".join(secrets.choice(avail_chars) for i in range(20))
@@ -112,6 +124,9 @@ def keycloak_admin(pytestconfig: pytest.Config) -> KeycloakAdmin:
     """
     Fixture that yields a *ready* Keycloak admin client.
     It is ensured that the testing realm is created and admin is switched to it.
+
+    :param pytestconfig:
+    Pytest configuration object.
     """
     admin_user: str = os.getenv("KEYCLOAK_ADMIN", "admin")
     admin_pass: str = os.getenv("KEYCLOAK_ADMIN_PASSWORD", "")
@@ -142,6 +157,12 @@ def keycloak_client(
 ) -> tuple[str, str]:
     """
     Fixture that ensures the OIDC client exists.
+
+    :param pytestconfig:
+    Pytest configuration object.
+
+    :param keycloak_admin:
+    Keycloak admin client.
     """
     client_id: str = os.getenv("KEYCLOAK_CLIENT_ID")
     client_secret: str = os.getenv("KEYCLOAK_CLIENT_SECRET")
@@ -153,10 +174,8 @@ def keycloak_client(
     if not client_secret:
         client_secret = _randkey()
 
-    ident: str
-    try:
-        ident = keycloak_admin.get_client_id(client_id)
-    except KeycloakGetError:
+    ident: str = keycloak_admin.get_client_id(client_id)
+    if not ident:
         payload: dict[object] = {
             "id": client_id,
             "clientId": client_id,
@@ -193,13 +212,16 @@ def keycloak_client(
         except Exception as exc:  # pragma: no cover
             logging.error(f"Cleanup user failed: {exc}")
     else:
-        logging.debug(f"Kept external user {client_id} ({ident})")
+        logging.debug(f"Kept external client {client_id} ({ident})")
 
 
 @pytest.fixture
 def keycloak_user(keycloak_admin: KeycloakAdmin) -> None:
     """
     Create a temporary user, yield its credentials, and delete it afterwards.
+
+    :param keycloak_admin:
+    Keycloak admin client.
     """
     username: str = os.getenv("KEYCLOAK_USER_NAME")
     password: str = os.getenv("KEYCLOAK_USER_PASSWORD")
@@ -255,7 +277,7 @@ def keycloak_openid(
     Pytest configuration object.
 
     :param keycloak_client:
-    Keycload OpenID client (clientId, clientSecret).
+    Keycloak OpenID client (clientId, clientSecret).
     """
     base_url = pytestconfig.base_url
     realm = pytestconfig.realm

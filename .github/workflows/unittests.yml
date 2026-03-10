@@ -1,0 +1,49 @@
+---
+name: Unit tests
+
+on: [pull_request, push]
+
+jobs:
+  python-pytest:
+    name: Python unittests using pytest
+    runs-on: ubuntu-latest
+    services:
+      keycloak:
+        image: quay.io/keycloak/keycloak:26.5
+        args:
+          - start-dev
+        ports:
+          - "8080:8080"
+          - "8500:8500"
+        env:
+          KC_BOOTSTRAP_ADMIN_USERNAME: admin
+          KC_BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
+        options: >-
+          --health-cmd="curl -f http://localhost:8080/"
+          --health-interval=2s
+          --health-retries=20
+          --health-timeout=2s
+          --health-start-period=10s
+    env:
+      KEYCLOAK_URL: http://127.0.0.1:8080
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
+      KEYCLOAK_CLIENT_CALLBACKS: http://127.0.0.1:8500/callback
+      LISTEN_ADDRESS: 127.0.0.1:8500
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          # Full git history needed to get proper list of changed files
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: Run fake integration test (real auth-code flow, on GenericOAuthenticator)
+        run: |
+          pytest -v --log-cli-level=INFO -ktest_generic_auth_code.py

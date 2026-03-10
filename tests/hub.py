@@ -3,10 +3,15 @@ Module for emulation of the JupyterHub API parts that are used by the authentica
 """
 
 import asyncio
+import base64
+import hashlib
+import json
 import logging
 import os
 import re
+import secrets
 import socket
+import string
 import threading
 import urllib.parse
 from typing import AsyncGenerator
@@ -33,13 +38,16 @@ class DummyHandler:
     """
     Minimal stub of ``tornado.web.RequestHandler``.
 
-    JupyterHub only calls ``handler.get_argument(name, default)`` inside
+    JupyterHub calls ``handler.get_argument(name, default)`` inside
     ``authenticate``.
     """
 
-    def __init__(self, data: dict):
+    def __init__(
+        self, data: dict[str, str], state_cookie: dict[str, str] | None = None
+    ):
         logging.info(f"DummyHandler.__init__(data={data})")
-        self.data = data
+        self.data: dict[str, str] = data
+        self.state_cookie: dict[str, str] | None = state_cookie
 
     def get_argument(self, name, default=None):
         # Mimic Tornado’s behaviour of raising a ``MissingArgumentError`` only
@@ -59,11 +67,13 @@ class DummyHandler:
         logging.info(f"DummyHandler.get_secure_cookie({name}) => {v}")
         return v
 
-    # XXX: base64 encoded data with "code_verifier" instead
-    # def get_state_cookie(self):
-    #     v = self.data["state"].encode()
-    #     logging.info(f"DummyHandler.get_state_cookie() => {v}")
-    #     return v
+    # State cookie as base64-encoded JSON.
+    def get_state_cookie(self):
+        v = None
+        if self.state_cookie is not None:
+            v = base64.urlsafe_b64encode(json.dumps(self.state_cookie).encode())
+        logging.info(f"DummyHandler.get_state_cookie() => {v}")
+        return v
 
 
 @pytest.fixture
@@ -254,6 +264,29 @@ async def oauth_callback_server(
     logging.debug("Callback: shutdown")
 
 
+def code_verifier_gen(length: int = 96):
+    """
+    Generate random code_verifier for PKCS.
+
+    :param length:
+    Result string length. It should be between 43 and 128.
+    """
+    avail_chars = string.ascii_letters + "_-~."
+    return "".join(secrets.choice(avail_chars) for i in range(length))
+
+
+def pkce_encode(code_verifier: str):
+    """
+    Convert code_challenge to code_verifier using S256 method for PKCE.
+
+    :param code_verifier:
+    Code verifier, string 43-128 characters long, [A-Za-z0-9._~-].
+    """
+    hashed: bytes = hashlib.sha256(code_verifier.encode()).digest()
+    hexed: str = base64.urlsafe_b64encode(hashed).decode("utf-8").rstrip("=")
+    return hexed
+
+
 def launch_oauth_code_flow(
     *,
     auth_endpoint: str,
@@ -263,6 +296,7 @@ def launch_oauth_code_flow(
     username: str,
     password: str,
     redirect_uri: str,
+    params: dict[str, str] | None = None,
     session: requests.Session | None = None,
 ) -> dict:
     """
@@ -284,6 +318,9 @@ def launch_oauth_code_flow(
         Test user credentials password.
     :param redirect_uri:
         URL where Keycloak will redirect back (must be reachable by the test).
+    :param params:
+        Additional params to inject. For example "code_challenge_method" and
+        "code_challenge" for PKCE.
     :param session:
         Optional ``requests.Session``; a new one will be created if omitted.
 
@@ -309,6 +346,8 @@ def launch_oauth_code_flow(
         "scope": "openid email profile",
         "state": state,
     }
+    if params:
+        auth_params.update(params)
     auth_url = f"{auth_endpoint}?{urllib.parse.urlencode(auth_params)}"
 
     # GET the auth URL – Keycloak will redirect to the login page

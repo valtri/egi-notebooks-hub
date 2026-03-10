@@ -115,7 +115,7 @@ def _randkey(length: int = 20):
     Result string length.
     """
     avail_chars = string.ascii_letters + string.digits + string.punctuation
-    return "".join(secrets.choice(avail_chars) for i in range(20))
+    return "".join(secrets.choice(avail_chars) for i in range(length))
 
 
 @pytest.fixture(scope="session")

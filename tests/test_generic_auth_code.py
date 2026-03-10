@@ -58,8 +58,7 @@ async def test_authorization_code_flow(
     auth.client_id = client_id
     auth.client_secret = client_secret
     auth.verify = True
-    # XXX: not yet supported in DummyHandler
-    auth.enable_pkce = False
+    auth.enable_pkce = True
     # available in default Keycloak setup
     auth.username_claim = "preferred_username"
 
@@ -74,6 +73,12 @@ async def test_authorization_code_flow(
     auth.userdata_url = userinfo_endpoint
     auth.token_url = token_endpoint
 
+    code_verifier: str = hub.code_verifier_gen()
+    code_challenge: str = hub.pkce_encode(code_verifier)
+    pkce_params: dict[str, str] = {
+        "code_challenge_method": "S256",
+        "code_challenge": code_challenge,
+    }
     response_params = hub.launch_oauth_code_flow(
         auth_endpoint=auth_endpoint,
         token_endpoint=token_endpoint,
@@ -82,6 +87,7 @@ async def test_authorization_code_flow(
         username=username,
         password=password,
         redirect_uri=redirect_uri,
+        params=pkce_params,
     )
     logging.debug(f"Launch OAuth code flow parameters: {response_params}")
 
@@ -94,7 +100,12 @@ async def test_authorization_code_flow(
     logging.debug(f"All params from callback: {callback_params}")
     assert code is not None and state == "test-state-12345"
 
-    handler = hub.DummyHandler({"code": code, "state": state})
+    handler = hub.DummyHandler(
+        data={"code": code, "state": state, },
+        state_cookie={
+            "code_verifier": code_verifier,
+        },
+    )
 
     # Call the authenticator *asynchronous* method
     result = await auth.authenticate(handler)

@@ -33,13 +33,13 @@ def test_setup(
         f"URL {keycloak_openid.well_known().get('issuer', None)}"
     )
 
-    token: dict[str, object] = keycloak_openid.token(
+    token: dict[str, str] = keycloak_openid.token(
         username=keycloak_user["username"],
         password=keycloak_user["password"],
         grant_type="client_credentials",
         scope="openid",
     )
-    token_info: dict[str, object] = {}
+    token_info: dict[str, str] = {}
     for item in token.items():
         if item[0].endswith("token"):
             token_info[item[0]] = (

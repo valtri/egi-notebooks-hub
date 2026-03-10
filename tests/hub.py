@@ -401,7 +401,7 @@ def launch_oauth_code_flow(
             f"code={code!r} state={returned_state!r}"
         )
 
-    params: dict[str, object] = {}
+    returned_params: dict[str, object | None] = {}
     for k in query.keys():
-        params[k] = query.get(k, [None])[0]
-    return params
+        returned_params[k] = query.get(k, [None])[0]
+    return returned_params

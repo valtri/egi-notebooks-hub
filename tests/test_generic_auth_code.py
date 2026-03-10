@@ -101,7 +101,10 @@ async def test_authorization_code_flow(
     assert code is not None and state == "test-state-12345"
 
     handler = hub.DummyHandler(
-        data={"code": code, "state": state, },
+        data={
+            "code": code,
+            "state": state,
+        },
         state_cookie={
             "code_verifier": code_verifier,
         },

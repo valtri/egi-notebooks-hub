@@ -32,6 +32,12 @@ RUN set -eux \
  && rm -f url.txt python3-krb5cc.deb \
  && krb5-oidc2cc --help >/dev/null
 
+# For debugging Kerberos
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    krb5-user \
+ && rm -rf /var/lib/apt/lists/*
+
 HEALTHCHECK --interval=5m --timeout=3s \
   CMD curl -f http://localhost:8000/hub/health || exit 1
 

@@ -4,14 +4,15 @@ Uses OpenID Connect with specific e-INFRA CZ AAI Kerberos extension
 """
 
 import base64
-import krb5cc
 import os
 import tempfile
 
+import krb5cc
 from oauthenticator.generic import GenericOAuthenticator
 
 
 class EInfraAuthenticator(GenericOAuthenticator):
+
     def _kerberos_exchange(self, auth_state):
         subject_token = auth_state["access_token"]
         if subject_token:
@@ -27,7 +28,7 @@ class EInfraAuthenticator(GenericOAuthenticator):
             self.log.info("kerberos_token: length %d", len(kerberos_token))
         else:
             self.log.info("kerberos_token: (None)")
-        (fd, fname) = tempfile.mkstemp(prefix="krb5cc.", suffix=".dat")
+        fd, fname = tempfile.mkstemp(prefix="krb5cc.", suffix=".dat")
         os.close(fd)
         self.log.info("temporary file for CC: %s", fname)
         krbctx.write(kerberos_token, ccache=fname)

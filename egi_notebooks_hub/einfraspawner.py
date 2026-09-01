@@ -6,7 +6,10 @@ from egi_notebooks_hub.egispawner import EGISpawner
 
 
 class EInfraSpawner(EGISpawner):
-    async def set_access_token(self, access_token, id_token=None, kerberos_ticket=None, kerberos_token=None):
+
+    async def set_access_token(
+        self, access_token, id_token=None, kerberos_ticket=None, kerberos_token=None
+    ):
         """updates the secret in k8s with the token of the user"""
         await self._update_secret(
             {
@@ -24,11 +27,16 @@ class EInfraSpawner(EGISpawner):
         if kerberos_ticket:
             kerberos_ticket = base64.b64decode(kerberos_ticket)
             self.environment.update(
-              {"KRB5CCNAME": f"FILE:{self.token_mount_path}/krb5cc"}
+                {"KRB5CCNAME": f"FILE:{self.token_mount_path}/krb5cc"}
             )
         await spawner.set_access_token(
-            auth_state.get("access_token", None), auth_state.get("id_token", None), kerberos_ticket, auth_state.get("kerberos_token", None)
+            auth_state.get("access_token", None),
+            auth_state.get("id_token", None),
+            kerberos_ticket,
+            auth_state.get("kerberos_token", None),
         )
         primary_group = auth_state.get("primary_group", None)
         if primary_group:
-            spawner.extra_annotations["egi.eu/primary_group"] = auth_state["primary_group"]
+            spawner.extra_annotations["egi.eu/primary_group"] = auth_state[
+                "primary_group"
+            ]

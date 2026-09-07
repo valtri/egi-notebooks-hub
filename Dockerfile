@@ -3,17 +3,6 @@ FROM quay.io/jupyterhub/k8s-hub:4.4.1
 
 USER root
 
-# Do installation in 2 phases to cache dependendencies
-COPY requirements.txt /egi-notebooks-hub/
-RUN pip3 install --no-cache-dir -r /egi-notebooks-hub/requirements.txt
-
-# Now install the code itself
-COPY . /egi-notebooks-hub/
-RUN pip3 install --no-cache-dir /egi-notebooks-hub
-
-# Copy images to the right place so they are found
-RUN cp -r /egi-notebooks-hub/static/* /usr/local/share/jupyterhub/static/
-
 # Install OIDC token to Kerberos ticket converter
 ARG KRB5_OIDC2CC_VERSION=1.1.0
 ARG KRB5_OIDC2CC_CHECKSUM=d876d54789905e931769022ed9da754c759f5c4bf487285b0b431604c3fe167e
@@ -37,6 +26,17 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     krb5-user \
  && rm -rf /var/lib/apt/lists/*
+
+# Do installation in 2 phases to cache dependendencies
+COPY requirements.txt /egi-notebooks-hub/
+RUN pip3 install --no-cache-dir -r /egi-notebooks-hub/requirements.txt
+
+# Now install the code itself
+COPY . /egi-notebooks-hub/
+RUN pip3 install --no-cache-dir /egi-notebooks-hub
+
+# Copy images to the right place so they are found
+RUN cp -r /egi-notebooks-hub/static/* /usr/local/share/jupyterhub/static/
 
 HEALTHCHECK --interval=5m --timeout=3s \
   CMD curl -f http://localhost:8000/hub/health || exit 1

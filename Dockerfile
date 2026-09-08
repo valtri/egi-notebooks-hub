@@ -24,7 +24,7 @@ RUN set -eux \
     "https://gitlab.cesnet.cz/702/projekty/krb5-oidc2cc/-/jobs/artifacts/$KRB5_OIDC2CC_VERSION/raw/url.txt?job=${KRB5_OIDC2CC_PLATFORM}" \
  && curl -fSL --retry 3 --max-time 30 --connect-timeout 10 \
     -o python3-krb5cc.deb \
-    "$(cat url.txt | head -n 1)" \
+    "$(head -n 1 <url.txt)" \
  && echo "$KRB5_OIDC2CC_CHECKSUM python3-krb5cc.deb" | sha256sum -c - \
  && apt-get update \
  && apt-get install --no-install-recommends -y ./python3-krb5cc.deb \
